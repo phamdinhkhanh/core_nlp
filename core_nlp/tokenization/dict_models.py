@@ -1,16 +1,27 @@
-from tokenization.base_tokenizer import BaseTokenizer
-from tokenization.utils import load_n_grams
-__author__ = "Ha Cao Thanh"
-__copyright__ = "Copyright 2018, DeepAI-Solutions"
+from core_nlp.tokenization.base_tokenizer import BaseTokenizer
+from core_nlp.tokenization.utils import load_n_grams
+import pkg_resources
+import logging as logging
+
+logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
+# pkg_resources.resource_filename('core_nlp', 'tri_grams.txt')
+BI_DATA_PATH = pkg_resources.resource_filename('core_nlp', 'tokenization/bi_grams.txt')
+TRI_DATA_PATH = pkg_resources.resource_filename('core_nlp', 'tokenization/tri_grams.txt')
+
+# __author__ = "Ha Cao Thanh"
+# __copyright__ = "Copyright 2018, DeepAI-Solutions"
+
 
 
 class LongMatchingTokenizer(BaseTokenizer):
-    def __init__(self, bi_grams_path='bi_grams.txt', tri_grams_path='tri_grams.txt'):
+    def __init__(self, bi_grams_path=BI_DATA_PATH, tri_grams_path=TRI_DATA_PATH):
         """
         Initial config
         :param bi_grams_path: path to bi-grams set
         :param tri_grams_path: path to tri-grams set
         """
+        # logging.info(bi_grams_path)
+        # logging.info(tri_grams_path)
         self.bi_grams = load_n_grams(bi_grams_path)
         self.tri_grams = load_n_grams(tri_grams_path)
 
