@@ -1,5 +1,5 @@
 from core_nlp.tokenization.base_tokenizer import BaseTokenizer
-from core_nlp.tokenization.utils import load_n_grams
+from core_nlp.tokenization.utils import load_n_grams, clean_accent_ngrams
 import pkg_resources
 import logging as logging
 
@@ -14,7 +14,7 @@ TRI_DATA_PATH = pkg_resources.resource_filename('core_nlp', 'tokenization/tri_gr
 
 
 class LongMatchingTokenizer(BaseTokenizer):
-    def __init__(self, bi_grams_path=BI_DATA_PATH, tri_grams_path=TRI_DATA_PATH):
+    def __init__(self, bi_grams_path=BI_DATA_PATH, tri_grams_path=TRI_DATA_PATH, is_accented = True, is_left_right = True, sep_tok = '_'):
         """
         Initial config
         :param bi_grams_path: path to bi-grams set
@@ -22,8 +22,14 @@ class LongMatchingTokenizer(BaseTokenizer):
         """
         # logging.info(bi_grams_path)
         # logging.info(tri_grams_path)
-        self.bi_grams = load_n_grams(bi_grams_path)
-        self.tri_grams = load_n_grams(tri_grams_path)
+        self.is_left_right = is_left_right
+        self.sep_tok = sep_tok
+        if is_accented:
+            self.bi_grams = load_n_grams(bi_grams_path)
+            self.tri_grams = load_n_grams(tri_grams_path)
+        else:
+            self.bi_grams = clean_accent_ngrams(bi_grams_path)
+            self.tri_grams = clean_accent_ngrams(tri_grams_path)
 
     def tokenize(self, text):
         """
@@ -32,38 +38,72 @@ class LongMatchingTokenizer(BaseTokenizer):
         :return: tokens
         """
         syllables = LongMatchingTokenizer.syllablize(text)
+        # print('syllables: ', syllables)
         syl_len = len(syllables)
         curr_id = 0
         word_list = []
         done = False
-        while (curr_id < syl_len) and (not done):
-            curr_word = syllables[curr_id]
-            if curr_id >= (syl_len - 1):
-                word_list.append(curr_word)
-                done = True
-            else:
-                next_word = syllables[curr_id + 1]
-                pair_word = ' '.join([curr_word.lower(), next_word.lower()])
-                if curr_id >= (syl_len - 2):
-                    if pair_word in self.bi_grams:
-                        word_list.append('_'.join([curr_word, next_word]))
-                        curr_id += 2
-                    else:
-                        word_list.append(curr_word)
-                        curr_id += 1
+        # Direction lookup from left to right
+        if self.is_left_right:
+            while (curr_id < syl_len) and (not done):
+                curr_word = syllables[curr_id]
+                if curr_id >= (syl_len - 1):
+                    word_list.append(curr_word)
+                    done = True
                 else:
-                    next_next_word = syllables[curr_id + 2]
-                    triple_word = ' '.join([pair_word, next_next_word.lower()])
-                    if triple_word in self.tri_grams:
-                        word_list.append('_'.join([curr_word, next_word, next_next_word]))
-                        curr_id += 3
-                    elif pair_word in self.bi_grams:
-                        word_list.append('_'.join([curr_word, next_word]))
-                        curr_id += 2
+                    next_word = syllables[curr_id + 1]
+                    pair_word = ' '.join([curr_word, next_word])
+                    if curr_id >= (syl_len - 2):
+                        if pair_word in self.bi_grams:
+                            word_list.append(self.sep_tok.join([curr_word, next_word]))
+                            curr_id += 2
+                        else:
+                            word_list.append(curr_word)
+                            curr_id += 1
                     else:
-                        word_list.append(curr_word)
-                        curr_id += 1
-        return word_list
+                        next_next_word = syllables[curr_id + 2]
+                        triple_word = ' '.join([pair_word, next_next_word])
+                        if triple_word in self.tri_grams:
+                            word_list.append(self.sep_tok.join([curr_word, next_word, next_next_word]))
+                            curr_id += 3
+                        elif pair_word in self.bi_grams:
+                            word_list.append(self.sep_tok.join([curr_word, next_word]))
+                            curr_id += 2
+                        else:
+                            word_list.append(curr_word)
+                            curr_id += 1
+            return word_list
+        # If revert lookup direction from right to left
+        else:
+            curr_id = syl_len - 1
+            while (curr_id >= 0) and (not done):
+                curr_word = syllables[curr_id]
+                if curr_id <= 0:
+                    word_list.append(curr_word)
+                    done = True
+                else:
+                    next_word = syllables[curr_id-1]
+                    pair_word = ' '.join([next_word, curr_word])
+                    if curr_id <= 1:
+                        if pair_word in self.bi_grams:
+                            word_list.append(self.sep_tok.join([next_word, curr_word]))
+                            curr_id -= 2
+                        else:
+                            word_list.append(curr_word)
+                            curr_id -= 1
+                    else:
+                        next_next_word = syllables[curr_id-2]
+                        triple_word = ' '.join([next_next_word, pair_word])
+                        if triple_word in self.tri_grams:
+                            word_list.append(self.sep_tok.join([next_next_word, next_word, curr_word]))
+                            curr_id -= 3
+                        elif pair_word in self.bi_grams:
+                            word_list.append(self.sep_tok.join([next_word, curr_word]))
+                            curr_id -= 2
+                        else:
+                            word_list.append(curr_word)
+                            curr_id -= 1
+            return word_list[::-1]
 
 
 """Tests"""
