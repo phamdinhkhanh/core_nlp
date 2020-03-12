@@ -13,7 +13,7 @@ E.g.
 
 ```python
 from tokenization.dict_models import LongMatchingTokenizer
-lm_tokenizer = LongMatchingTokenizer()
+lm_tokenizer = LongMatchingTokenizer(is_accented = True, is_left_right = True, sep_tok = '_')
 tokens = lm_tokenizer.tokenize("Thuế thu nhập cá nhân")
 ```
 Output will be an array: ['Thuế_thu_nhập', 'cá_nhân']
