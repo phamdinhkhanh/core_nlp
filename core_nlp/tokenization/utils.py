@@ -66,7 +66,30 @@ def clean_files_from_dir(input_dir, output_dir):
 
 
 """Tests"""
+def clean_accent(text):
+    accented_chars = {
+        'a': u'á à ả ã ạ â ấ ầ ẩ ẫ ậ ă ắ ằ ẳ ẵ ặ',
+        'o': u'ó ò ỏ õ ọ ô ố ồ ổ ỗ ộ ơ ớ ờ ở ỡ ợ',
+        'e': u'é è ẻ ẽ ẹ ê ế ề ể ễ ệ',
+        'u': u'ú ù ủ ũ ụ ư ứ ừ ử ữ ự',
+        'i': u'í ì ỉ ĩ ị',
+        'y': u'ý ỳ ỷ ỹ ỵ',
+        'd': u'đ',
+    }
 
+    plain_char_map = {}
+    for c, variants in accented_chars.items():
+        for v in variants.split(' '):
+            plain_char_map[v] = c
+    return u''.join(plain_char_map.get(char, char) for char in text)
+
+def clean_accent_ngrams(path):
+    new_ngrams = set()
+    ngrams = load_n_grams(path)
+    for item in ngrams:
+        no_accent = clean_accent(item)
+        new_ngrams.add(no_accent)
+    return new_ngrams
 
 def test_clean_file():
     data_path = '../data/tokenized/samples/html/html_data.txt'
@@ -81,5 +104,6 @@ def test_clean_files_in_dir():
 
 
 if __name__ == '__main__':
-    # test_clean_file()
-    test_clean_files_in_dir()
+    test_clean_file()
+    # print(clean_accent_ngrams('D:\\download\\core_nlp\\core_nlp\\tokenization\\bi_grams.txt'))
+
